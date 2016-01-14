@@ -41,11 +41,19 @@ var S_IXOTH = 1;      /* 0000001 execute/search permission, others */
 function Mode (stat) {
   if (!(this instanceof Mode)) return new Mode(stat);
   if (!stat) throw new TypeError('must pass in a "stat" object');
-  if ('number' != typeof stat.mode) stat.mode = 0;
-  this.stat = stat;
-  this.owner = new Owner(stat);
-  this.group = new Group(stat);
-  this.others = new Others(stat);
+  this.set(stat.mode);
+  this.owner = new Owner(this);
+  this.group = new Group(this);
+  this.others = new Others(this);
+}
+
+Mode.prototype.set = function (mode) {
+  if (mode instanceof Mode) {
+    mode = mode.valueOf();
+  } else if ('number' != typeof mode) {
+    mode = 0;
+  }
+  this.mode = mode;
 }
 
 /**
@@ -56,7 +64,7 @@ function Mode (stat) {
  */
 
 Mode.prototype.valueOf = function () {
-  return this.stat.mode;
+  return this.mode;
 };
 
 /**
@@ -131,14 +139,14 @@ Mode.prototype.toString = function () {
  */
 
 Mode.prototype.toOctal = function () {
-  var octal = this.stat.mode & 4095 /* 07777 */;
+  var octal = this.mode & 4095 /* 07777 */;
   return ('0000' + octal.toString(8)).slice(-4);
 };
 
 Mode.prototype._checkModeProperty = function (property, set) {
-  var mode = this.stat.mode;
+  var mode = this.mode;
   if (set) {
-    this.stat.mode = (mode | S_IFMT) & property | mode & ~S_IFMT;
+    this.mode = (mode | S_IFMT) & property | mode & ~S_IFMT;
   }
   return (mode & S_IFMT) === property;
 };
@@ -173,159 +181,175 @@ Mode.prototype.isSocket = function (v) {
 
 define(Mode.prototype, 'setuid',
   function () {
-    return Boolean(this.stat.mode & S_ISUID);
+    return Boolean(this.mode & S_ISUID);
   },
   function (v) {
     if (v) {
-      this.stat.mode |= S_ISUID;
+      this.mode |= S_ISUID;
     } else {
-      this.stat.mode &= ~S_ISUID;
+      this.mode &= ~S_ISUID;
     }
   }
 );
 
 define(Mode.prototype, 'setgid',
   function () {
-    return Boolean(this.stat.mode & S_ISGID);
+    return Boolean(this.mode & S_ISGID);
   },
   function (v) {
     if (v) {
-      this.stat.mode |= S_ISGID;
+      this.mode |= S_ISGID;
     } else {
-      this.stat.mode &= ~S_ISGID;
+      this.mode &= ~S_ISGID;
     }
   }
 );
 
 define(Mode.prototype, 'sticky',
   function () {
-    return Boolean(this.stat.mode & S_ISVTX);
+    return Boolean(this.mode & S_ISVTX);
   },
   function (v) {
     if (v) {
-      this.stat.mode |= S_ISVTX;
+      this.mode |= S_ISVTX;
     } else {
-      this.stat.mode &= ~S_ISVTX;
+      this.mode &= ~S_ISVTX;
     }
   }
 );
 
+
 function Owner (stat) {
-  define(this, 'read',
-    function () {
-      return Boolean(stat.mode & S_IRUSR);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IRUSR;
-      } else {
-        stat.mode &= ~S_IRUSR;
-      }
+  this.stat = stat;
+};
+
+define(Owner.prototype, 'read',
+  function () {
+    return Boolean(this.stat.mode & S_IRUSR);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IRUSR;
+    } else {
+      this.stat.mode &= ~S_IRUSR;
     }
-  );
-  define(this, 'write',
-    function () {
-      return Boolean(stat.mode & S_IWUSR);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IWUSR;
-      } else {
-        stat.mode &= ~S_IWUSR;
-      }
+  }
+);
+
+define(Owner.prototype, 'write',
+  function () {
+    return Boolean(this.stat.mode & S_IWUSR);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IWUSR;
+    } else {
+      this.stat.mode &= ~S_IWUSR;
     }
-  );
-  define(this, 'execute',
-    function () {
-      return Boolean(stat.mode & S_IXUSR);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IXUSR;
-      } else {
-        stat.mode &= ~S_IXUSR;
-      }
+  }
+);
+
+define(Owner.prototype, 'execute',
+  function () {
+    return Boolean(this.stat.mode & S_IXUSR);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IXUSR;
+    } else {
+      this.stat.mode &= ~S_IXUSR;
     }
-  );
-}
+  }
+);
+
 
 function Group (stat) {
-  define(this, 'read',
-    function () {
-      return Boolean(stat.mode & S_IRGRP);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IRGRP;
-      } else {
-        stat.mode &= ~S_IRGRP;
-      }
+  this.stat = stat;
+};
+
+define(Group.prototype, 'read',
+  function () {
+    return Boolean(this.stat.mode & S_IRGRP);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IRGRP;
+    } else {
+      this.stat.mode &= ~S_IRGRP;
     }
-  );
-  define(this, 'write',
-    function () {
-      return Boolean(stat.mode & S_IWGRP);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IWGRP;
-      } else {
-        stat.mode &= ~S_IWGRP;
-      }
+  }
+);
+
+define(Group.prototype, 'write',
+  function () {
+    return Boolean(this.stat.mode & S_IWGRP);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IWGRP;
+    } else {
+      this.stat.mode &= ~S_IWGRP;
     }
-  );
-  define(this, 'execute',
-    function () {
-      return Boolean(stat.mode & S_IXGRP);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IXGRP;
-      } else {
-        stat.mode &= ~S_IXGRP;
-      }
+  }
+);
+
+define(Group.prototype, 'execute',
+  function () {
+    return Boolean(this.stat.mode & S_IXGRP);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IXGRP;
+    } else {
+      this.stat.mode &= ~S_IXGRP;
     }
-  );
-}
+  }
+);
+
 
 function Others (stat) {
-  define(this, 'read',
-    function () {
-      return Boolean(stat.mode & S_IROTH);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IROTH;
-      } else {
-        stat.mode &= ~S_IROTH;
-      }
+  this.stat = stat;
+};
+
+define(Others.prototype, 'read',
+  function () {
+    return Boolean(this.stat.mode & S_IROTH);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IROTH;
+    } else {
+      this.stat.mode &= ~S_IROTH;
     }
-  );
-  define(this, 'write',
-    function () {
-      return Boolean(stat.mode & S_IWOTH);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IWOTH;
-      } else {
-        stat.mode &= ~S_IWOTH;
-      }
+  }
+);
+
+define(Others.prototype, 'write',
+  function () {
+    return Boolean(this.stat.mode & S_IWOTH);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IWOTH;
+    } else {
+      this.stat.mode &= ~S_IWOTH;
     }
-  );
-  define(this, 'execute',
-    function () {
-      return Boolean(stat.mode & S_IXOTH);
-    },
-    function (v) {
-      if (v) {
-        stat.mode |= S_IXOTH;
-      } else {
-        stat.mode &= ~S_IXOTH;
-      }
+  }
+);
+
+define(Others.prototype, 'execute',
+  function () {
+    return Boolean(this.stat.mode & S_IXOTH);
+  },
+  function (v) {
+    if (v) {
+      this.stat.mode |= S_IXOTH;
+    } else {
+      this.stat.mode &= ~S_IXOTH;
     }
-  );
-}
+  }
+);
+
 
 function define (obj, name, get, set) {
   Object.defineProperty(obj, name, {
