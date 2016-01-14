@@ -32,6 +32,12 @@ var S_IWOTH = 2;      /* 0000002 write permission, others */
 var S_IXOTH = 1;      /* 0000001 execute/search permission, others */
 
 /**
+ * Constants for use in toString().
+ */
+var _TYPE = '!pc!d!b!-!l!s!!!';
+var _RWX = ['---', '--x', '-w-', '-wx', 'r--', 'r-x', 'rw-', 'rwx'];
+
+/**
  * `Mode` class.
  *
  * @param {fs.Stat} stat a "stat" object (anything with a `mode` Number property)
@@ -81,50 +87,19 @@ Mode.prototype.toString = function () {
   var str = [];
 
   // file type
-  if (this.isDirectory()) {
-    str.push('d');
-  } else if (this.isFile()) {
-    str.push('-');
-  } else if (this.isBlockDevice()) {
-    str.push('b');
-  } else if (this.isCharacterDevice()) {
-    str.push('c');
-  } else if (this.isSymbolicLink()) {
-    str.push('l');
-  } else if (this.isFIFO()) {
-    str.push('p');
-  } else if (this.isSocket()) {
-    str.push('s');
-  } else {
+  str.push(_TYPE[(this.mode >> 12) & 15]);
+  if ('!' === str[0]) {
     throw new TypeError('unexpected "file type"');
   }
 
   // owner read, write, execute
-  str.push(this.owner.read ? 'r' : '-');
-  str.push(this.owner.write ? 'w' : '-');
-  if (this.setuid) {
-    str.push(this.owner.execute ? 's' : 'S');
-  } else {
-    str.push(this.owner.execute ? 'x' : '-');
-  }
+  str.push(_RWX[(this.mode >> 6) & 7]);
 
   // group read, write, execute
-  str.push(this.group.read ? 'r' : '-');
-  str.push(this.group.write ? 'w' : '-');
-  if (this.setgid) {
-    str.push(this.group.execute ? 's' : 'S');
-  } else {
-    str.push(this.group.execute ? 'x' : '-');
-  }
+  str.push(_RWX[(this.mode >> 3) & 7]);
 
   // others read, write, execute
-  str.push(this.others.read ? 'r' : '-');
-  str.push(this.others.write ? 'w' : '-');
-  if (this.sticky) {
-    str.push(this.others.execute ? 't' : 'T');
-  } else {
-    str.push(this.others.execute ? 'x' : '-');
-  }
+  str.push(_RWX[this.mode & 7]);
 
   return str.join('');
 };
